@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net;
+using System.Threading;
 
 namespace server
 {
@@ -29,12 +30,44 @@ namespace server
                 MessageBox.Show("يرجى كتابة رقم البورت (مثلاً 5050) في textBox2 أولاً!");
                 return; // إيقاف التنفيذ لتجنب الـ Crash
             }
-            TcpListener myserver = new TcpListener(IPAddress.Any, int.Parse(textBox2.Text));
+             myserver = new TcpListener(IPAddress.Any, int.Parse(textBox2.Text));
             myserver.Start();
             richTextBox1.Text += "انتضار الاتصال \n";
             MessageBox.Show("تم فتح الاتصال \n");
-            cypclint = myserver.AcceptTcpClient();
-            richTextBox1.Text += "تم دخول اتصال جديد \n";
+            Thread t = new Thread(AcceptCon);
+            t.Start();
+        }
+        TcpListener myserver;
+
+        void AcceptCon()
+        {
+            while (true)
+            {
+                cypclint = myserver.AcceptTcpClient();
+                Invoke((Action)(() =>
+                {
+                    richTextBox1.Text += "تم دخول اتصال جديد \n";
+
+                    IPEndPoint ipep= cypclint.Client.LocalEndPoint as IPEndPoint;
+                    richTextBox1.Text += ipep.Address+"\n";
+                }));
+                Thread th1 = new Thread(ReciveMessage);
+                th1.Start();
+            }
+        }
+        void ReciveMessage()
+        {
+            while (true)
+            {
+                byte[] mybuffer = new byte[1000];
+                cypclint.Client.Receive(mybuffer);
+                Invoke((Action)(() =>
+                {
+                    richTextBox1.Text += "server>>";
+                    richTextBox1.Text += Encoding.UTF8.GetString(mybuffer);
+                    richTextBox1.Text += "\n";
+                }));
+            }
         }
 
         private void button2_Click(object sender, EventArgs e)

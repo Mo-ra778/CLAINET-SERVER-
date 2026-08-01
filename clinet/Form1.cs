@@ -8,6 +8,7 @@ using System.Text;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Threading;
 
 namespace clinet
 {
@@ -27,8 +28,23 @@ namespace clinet
         {
             myclient = new TcpClient(textBox1.Text, int.Parse(textBox2.Text));
             richTextBox1.Text = "تم الاتصال بالسيرفر بنجاح " + textBox2.Text + "\n";
+            Thread th1 = new Thread(ReciveMessage);
+            th1.Start();       
         }
-
+        void ReciveMessage()
+        {
+            while(true)
+            {
+                byte[] mybuffer = new byte[1000];
+                myclient.Client.Receive(mybuffer);
+                Invoke((Action)(() =>
+                {
+                    richTextBox1.Text += "server>>";
+                    richTextBox1.Text += Encoding.UTF8.GetString(mybuffer);
+                    richTextBox1.Text += "\n";
+                }));       
+            }
+        }
         private void button2_Click(object sender, EventArgs e)
         {
             byte[] mybuffer = new byte[1000];
